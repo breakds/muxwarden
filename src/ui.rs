@@ -1,4 +1,4 @@
-use crate::app::App;
+use crate::app::{App, InputMode};
 use crate::ssh::ControlMasterStatus;
 use anyhow::Result;
 use crossterm::{
@@ -8,10 +8,10 @@ use crossterm::{
 };
 use ratatui::{
     backend::CrosstermBackend,
-    layout::{Constraint, Layout},
+    layout::{Constraint, Flex, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
+    widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph},
     Terminal,
 };
 use std::io::{self, stdout};
@@ -47,12 +47,21 @@ fn run_loop(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &mut App
             if let Event::Key(key) = event::read()? {
                 // Only handle key press events (not release)
                 if key.kind == KeyEventKind::Press {
-                    match key.code {
-                        KeyCode::Char(c) => app.on_key(c),
-                        KeyCode::Esc => app.should_quit = true,
-                        KeyCode::Up => app.select_prev(),
-                        KeyCode::Down => app.select_next(),
-                        _ => {}
+                    match app.input_mode {
+                        InputMode::Normal => match key.code {
+                            KeyCode::Char(c) => app.on_key(c),
+                            KeyCode::Esc => app.should_quit = true,
+                            KeyCode::Up => app.select_prev(),
+                            KeyCode::Down => app.select_next(),
+                            _ => {}
+                        },
+                        InputMode::AddingForward => match key.code {
+                            KeyCode::Char(c) => app.on_input_key(c),
+                            KeyCode::Backspace => app.on_input_backspace(),
+                            KeyCode::Enter => app.submit_input(),
+                            KeyCode::Esc => app.cancel_input(),
+                            _ => {}
+                        },
                     }
                 }
             }
@@ -127,9 +136,57 @@ fn draw(frame: &mut ratatui::Frame, app: &App) {
 
     frame.render_stateful_widget(list, chunks[1], &mut list_state);
 
-    // Footer with help
-    let help = Paragraph::new(" j/k or ↑/↓: Navigate | q: Quit")
-        .style(Style::default().fg(Color::DarkGray));
+    // Footer with help or status message
+    let footer_content = if let Some(ref msg) = app.status_message {
+        Line::from(vec![
+            Span::raw(" "),
+            Span::styled(msg, Style::default().fg(Color::Yellow)),
+        ])
+    } else {
+        Line::from(" j/k: Navigate | a: Add | d: Delete | q: Quit")
+    };
+
+    let help = Paragraph::new(footer_content).style(Style::default().fg(Color::DarkGray));
 
     frame.render_widget(help, chunks[2]);
+
+    // Draw input popup if in input mode
+    if app.input_mode == InputMode::AddingForward {
+        draw_input_popup(frame, app);
+    }
+}
+
+fn draw_input_popup(frame: &mut ratatui::Frame, app: &App) {
+    let area = frame.area();
+
+    // Center a popup
+    let popup_area = centered_rect(40, 5, area);
+
+    // Clear the area behind the popup
+    frame.render_widget(Clear, popup_area);
+
+    // Draw the input box
+    let input = Paragraph::new(Line::from(vec![
+        Span::raw(&app.input_buffer),
+        Span::styled("_", Style::default().add_modifier(Modifier::SLOW_BLINK)),
+    ]))
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title("Add Port Forward")
+            .border_style(Style::default().fg(Color::Cyan)),
+    );
+
+    frame.render_widget(input, popup_area);
+}
+
+/// Create a centered rectangle with given width and height
+fn centered_rect(width: u16, height: u16, area: Rect) -> Rect {
+    let horizontal = Layout::horizontal([Constraint::Length(width)])
+        .flex(Flex::Center)
+        .split(area);
+
+    Layout::vertical([Constraint::Length(height)])
+        .flex(Flex::Center)
+        .split(horizontal[0])[0]
 }

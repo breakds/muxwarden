@@ -96,6 +96,31 @@ fn parse_master_pid(output: &str) -> Option<u32> {
     None
 }
 
+/// Start a control master for the given host
+/// Returns the PID of the new master
+pub fn start_control_master(hostname: &str) -> Result<u32> {
+    // Start ssh in master mode, backgrounded, no command
+    let output = Command::new("ssh")
+        .args(["-fNM", hostname])
+        .output()
+        .context("Failed to execute ssh -fNM")?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        anyhow::bail!("Failed to start control master: {}", stderr.trim());
+    }
+
+    // Give it a moment to establish, then check for the PID
+    std::thread::sleep(std::time::Duration::from_millis(500));
+
+    match check_control_master(hostname)? {
+        ControlMasterStatus::Running { pid } => Ok(pid),
+        ControlMasterStatus::NotRunning => {
+            anyhow::bail!("Control master started but not detected")
+        }
+    }
+}
+
 /// Add a port forward via the control master
 /// Maps local_port -> localhost:local_port on remote
 pub fn add_forward(hostname: &str, port: u16) -> Result<()> {
