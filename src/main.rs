@@ -45,8 +45,6 @@ fn main() -> Result<()> {
         );
     }
 
-    let control_path = config.control_path.unwrap();
-
     // Handle CLI subcommands (one-shot mode)
     if let Some(command) = cli.command {
         return handle_cli_command(&cli.host, command);
@@ -59,7 +57,7 @@ fn main() -> Result<()> {
         ssh::ControlMasterStatus::NotRunning => vec![],
     };
 
-    let mut app = app::App::new(cli.host, control_path, master_status, forwards);
+    let mut app = app::App::new(cli.host, master_status, forwards);
     ui::run(&mut app)?;
 
     Ok(())

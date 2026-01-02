@@ -13,7 +13,6 @@ pub enum ControlMasterStatus {
 /// Information about SSH configuration for a host
 #[derive(Debug)]
 pub struct SshConfig {
-    pub hostname: String,
     pub control_path: Option<String>,
 }
 
@@ -33,10 +32,7 @@ impl SshConfig {
         let stdout = String::from_utf8_lossy(&output.stdout);
         let control_path = parse_control_path(&stdout);
 
-        Ok(SshConfig {
-            hostname: hostname.to_string(),
-            control_path,
-        })
+        Ok(SshConfig { control_path })
     }
 
     /// Check if this host has a control path configured

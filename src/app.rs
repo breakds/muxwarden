@@ -1,4 +1,4 @@
-use crate::portfwd::{self, PortForward};
+use crate::portfwd::PortForward;
 use crate::ssh::{self, ControlMasterStatus};
 
 /// Current input mode
@@ -13,8 +13,6 @@ pub enum InputMode {
 pub struct App {
     /// The SSH host being managed
     pub hostname: String,
-    /// Path to the control socket
-    pub control_path: String,
     /// Current control master status
     pub master_status: ControlMasterStatus,
     /// List of active port forwards
@@ -34,13 +32,11 @@ pub struct App {
 impl App {
     pub fn new(
         hostname: String,
-        control_path: String,
         master_status: ControlMasterStatus,
         forwards: Vec<PortForward>,
     ) -> Self {
         Self {
             hostname,
-            control_path,
             master_status,
             forwards,
             selected: 0,
@@ -150,19 +146,6 @@ impl App {
         }
         self.input_mode = InputMode::Normal;
         self.input_buffer.clear();
-    }
-
-    /// Refresh port forwards from system
-    pub fn refresh_forwards(&mut self) {
-        if let ControlMasterStatus::Running { pid } = self.master_status {
-            if let Ok(forwards) = portfwd::list_forwards_by_pid(pid) {
-                self.forwards = forwards;
-                // Adjust selection if needed
-                if self.selected >= self.forwards.len() && !self.forwards.is_empty() {
-                    self.selected = self.forwards.len() - 1;
-                }
-            }
-        }
     }
 
     /// Move selection down
