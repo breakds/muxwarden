@@ -1,6 +1,6 @@
 [package]
 edition = "2024"
-version = "0.1.0"
+version = "1.0.0"
 name = "muxwarden"
 description = "A TUI for managing SSH multiplex connections and port forwarding"
 

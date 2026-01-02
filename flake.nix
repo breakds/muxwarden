@@ -20,6 +20,7 @@
     systems = [ "x86_64-linux" "aarch64-darwin" ];
     imports = [
       ./nix/development.nix
+      ./nix/release.nix
     ];
 
     perSystem = { system, config, pkgs-dev, ... }: {
