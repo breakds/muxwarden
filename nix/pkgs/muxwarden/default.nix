@@ -9,7 +9,7 @@ rustPlatform.buildRustPackage {
 
   src = ../../..;
 
-  cargoHash = "sha256-2r+WSykau+5Rvh8cWmgkInyddjh2bL6myEQ16Va8jZY=";
+  cargoHash = "sha256-6JP344hliNkGHVqC4OP7H7ZLTw/XyCV2+ffA1w4MV2M=";
 
   meta = {
     description = "A TUI for managing SSH multiplex connections and port forwarding";
